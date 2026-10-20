@@ -1,0 +1,24 @@
+bigcurve is released under the MIT licence (see LICENSE).
+
+The refinement test in src/lib.rs (perpendicular distance of the moved
+midpoint from the chord, the midpoint-near-an-end check, the forced split
+of arcs wider than 30 degrees and the maximum depth of 16) is a port of
+resampleLineTo() in src/projection/resample.js of d3-geo,
+https://github.com/d3/d3-geo, distributed under the following licence:
+
+Copyright 2010-2024 Mike Bostock
+
+Permission to use, copy, modify, and/or distribute this software for any purpose
+with or without fee is hereby granted, provided that the above copyright notice
+and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+
+The spherical midpoint descends from SGAT::trackMdpts by Simon Wotherspoon,
+by way of the R package.

@@ -1,0 +1,14 @@
+[package]
+name = "bigcurve"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.70"
+license = "MIT"
+description = "Adaptive densification of lines under a map projection or any forward map"
+repository = "https://github.com/hypertidy/bigcurve-rs"
+readme = "README.md"
+keywords = ["geospatial", "projection", "densify", "great-circle", "gis"]
+categories = ["science::geo", "mathematics"]
+exclude = ["oracle/oracle"]
+
+[dependencies]
