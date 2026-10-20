@@ -13,9 +13,29 @@ for [d3-geo](https://github.com/d3/d3-geo): bisect an edge while its
 moved midpoint sits off the chord of its moved ends, with the error
 measured where it matters, in the target plane.
 
-Status: planning. There is no code yet; see
-[design/01-plan.md](design/01-plan.md) for what the crate is, what it
-generalises, and the stages to get there.
+Status: stage 1 of [the plan](design/01-plan.md), a faithful port of
+the R package's engine. For the same forward map it gives bitwise
+identical output to the C++ engine (the tests replay fixtures recorded
+from it with PROJ; see [oracle/](oracle/README.md)). Edges are great
+circles; other edge models come next.
+
+```rust
+use bigcurve::{densify_path, from_fn, Options};
+
+// any forward map: a PROJ transformation, an analytic projection,
+// or positions to the index space of a grid
+let merc = from_fn(|lon: f64, lat: f64| {
+    let y = (std::f64::consts::FRAC_PI_4 + lat.to_radians() / 2.0).tan().ln();
+    Some([6378137.0 * lon.to_radians(), 6378137.0 * y])
+});
+let line = [[0.0, 60.0], [100.0, 60.0]];
+let d = densify_path(merc, &line, &Options::new(5e4)); // tolerance in metres
+```
+
+`densify_mesh` takes vertices and segment index pairs, refines a
+segment that appears twice (a shared boundary) once, and reports each
+new segment's parent; `default_tolerance` gives the R package's "one
+part in 2048 of the projected extent".
 
 ## The idea in one paragraph
 
@@ -29,7 +49,7 @@ tolerance, transforming each point once. Edges shared by neighbouring
 polygons refine to identical vertices, so a set of shapes that tiled the
 plane before still tiles it after.
 
-## Planned shape
+## Shape
 
 - a core with no dependencies: the edge model and forward map are traits
   you implement or pick from the built-in ones;
@@ -41,4 +61,4 @@ plane before still tiles it after.
 ## Licence
 
 MIT. The refinement test follows d3-geo's `resampleLineTo` (ISC,
-Copyright 2010-2024 Mike Bostock); the notice will ship with the code.
+Copyright 2010-2024 Mike Bostock); see [NOTICE](NOTICE).

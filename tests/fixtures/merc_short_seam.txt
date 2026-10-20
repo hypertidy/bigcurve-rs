@@ -1,0 +1,12 @@
+# bigcurve fixture: merc_short_seam
+# target +proj=merc
+# doubles are IEEE 754 bit patterns in hex
+kind path
+tolerance 40e86a0000000000
+max_depth 16
+in 40667ccccccccccd 0000000000000000
+in c0667ccccccccccd 0000000000000000
+fwd 40667ccccccccccd 0000000000000000 ok 41731940864ca2c5 0000000000000000
+fwd c0667ccccccccccd 0000000000000000 ok c1731940864ca2c5 0000000000000000
+out 40667ccccccccccd 0000000000000000
+out c0667ccccccccccd 0000000000000000

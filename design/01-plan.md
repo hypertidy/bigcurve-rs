@@ -103,9 +103,20 @@ with the index of their parent segment.
 
 ## Stages
 
-### 1. Faithful port
+### 1. Faithful port (done)
 
-`GreatCircle` only, the `Forward` trait, path and segment-mesh input,
+Landed as `Forward` (plus `from_fn` for closures), `Resampler`,
+`densify_path`, `densify_mesh` and `default_tolerance`; there is no edge
+model trait yet, the great circle is built in. The oracle is the C++
+header itself, run with PROJ through copies of the R package's path and
+mesh drivers (`oracle/`); every forward call is recorded, so the tests
+replay PROJ without linking it and fail if the Rust engine asks for a
+point the C++ engine did not. All fixtures match bit for bit on Linux
+with glibc; elsewhere the platform's trigonometry may differ in the last
+bits, and the tests compare to 1e-9 degrees. `densify(ellipsoid = TRUE)`
+is R-side in the package and moves to stage 2 with `Geodesic`.
+
+Planned scope: `GreatCircle` only, the `Forward` trait, path and segment-mesh input,
 parent indices, canonical direction. No dependencies. The d3-geo notice
 ships with it.
 
