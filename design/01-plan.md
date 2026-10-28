@@ -128,13 +128,43 @@ with bigcurve and PROJ; it runs once on a machine with R, and the
 fixtures are committed with the forward map's output so the Rust tests
 need no PROJ.
 
-### 2. Edge models
+### 2. Edge models and a batched forward map
 
 The edge model trait, `Planar`, and `Geodesic` behind a feature. The
 long and negligible rules restated per model. Tests: `Planar` under an
 affine map adds nothing; `Planar` under a known nonlinear map converges
 at the square-root rate the R README documents (ten times tighter
 tolerance, about three times the vertices).
+
+A batched forward map alongside `Forward`: slices of points in, per-point
+success out, the shape of rwarp's `Transformer::transform`. The engine
+then refines breadth first: all edges that fail the test at one level are
+split together, their midpoints moved in one call. Results stay identical
+to the one-point engine (same tests, same order of decisions per edge),
+so the R fixtures still pin it. `Forward` implements the batched map
+point by point, so existing callers are unchanged.
+
+The first consumer driving this stage is rwarp's exact footprint
+(wxylib/design m19, section 5.4): destination pixel edges, straight in
+destination pixel space (`Planar`), moved to source pixel space by the
+warp's transformer, with the tolerance a fraction of a source cell. rwarp
+transforms its pixel lattice once as scanlines and hands bigcurve only
+the edges that fail the test, a row band at a time, which is why batching
+matters there. Its needs, beyond `Planar` and batching:
+
+- the forward map is any transformer (geolocation arrays, GCPs), not a
+  CRS: already so, through `from_fn`;
+- refinement points must go through an exact map: a map that itself
+  interpolates linearly between samples (rwarp's `ApproxTransformer`)
+  makes every midpoint lie on its chord, so refinement never triggers.
+  Worth a sentence in the docs, since the failure is silent;
+- shared edges refined once and read by both neighbours: `densify_mesh`
+  already does this per segment;
+- a stated rule for an edge whose midpoint fails (near a map's horizon
+  or a pole): stop refining that edge, or bisect towards the boundary.
+  The R engine leaves such points alone; rwarp would skip the pixel, so
+  "stop" is enough for it, but the choice should be explicit;
+- pure Rust, builds for wasm.
 
 ### 3. Adapters and examples
 
@@ -151,6 +181,9 @@ Kept outside this crate, listed so the API serves them:
 
 - grid front ends for controlledburn (curvilinear and reprojected
   polygons), which would take a `Forward` and an edge model;
+- rwarp's exact footprint (adaptive densify of destination pixel edges,
+  see stage 2) and, opt-in, its source-window planning, where an adaptive
+  boundary must still guarantee the window contains every needed pixel;
 - wxylib's coverage and warp-window code;
 - the R package, if and when it makes sense for it to link this crate
   rather than its own header (the header stays the R package's source
