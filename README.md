@@ -13,11 +13,14 @@ for [d3-geo](https://github.com/d3/d3-geo): bisect an edge while its
 moved midpoint sits off the chord of its moved ends, with the error
 measured where it matters, in the target plane.
 
-Status: stage 1 of [the plan](design/01-plan.md), a faithful port of
-the R package's engine. For the same forward map it gives bitwise
+Status: stage 2 of [the plan](design/01-plan.md). Stage 1 is a faithful
+port of the R package's engine: for the same forward map it gives bitwise
 identical output to the C++ engine (the tests replay fixtures recorded
-from it with PROJ; see [oracle/](oracle/README.md)). Edges are great
-circles; other edge models come next.
+from it with PROJ; see [oracle/](oracle/README.md)). Stage 2 adds the
+edge model as a parameter (`GreatCircle`, the default, and `Planar`) and
+a batched forward map (`ForwardBatch`): refinement runs level by level,
+one forward call per level, with bitwise the same vertices as the
+depth-first recursion. The geodesic edge model is still to come.
 
 ```rust
 use bigcurve::{densify_path, from_fn, Options};
@@ -36,6 +39,29 @@ let d = densify_path(merc, &line, &Options::new(5e4)); // tolerance in metres
 segment that appears twice (a shared boundary) once, and reports each
 new segment's parent; `default_tolerance` gives the R package's "one
 part in 2048 of the projected extent".
+
+Planar edges, a batched map, and a tolerance in the target's own units
+(here a thousandth of a cell of a grid's index space):
+
+```rust
+use bigcurve::{densify_path_with, ForwardBatch, Options, Planar};
+
+struct ToIndex; // stands in for a grid's world-to-index map
+impl ForwardBatch for ToIndex {
+    fn forward_batch(&mut self, x: &mut [f64], y: &mut [f64], _near: &[[f64; 2]], ok: &mut [bool]) {
+        for i in 0..x.len() {
+            let (r, a) = (x[i].hypot(y[i]) / 10.0, y[i].atan2(x[i]).to_degrees());
+            (x[i], y[i], ok[i]) = (r, a, true);
+        }
+    }
+}
+let d = densify_path_with(ToIndex, Planar::new(), &[[100.0, 0.0], [0.0, 100.0]], &Options::new(1e-3));
+```
+
+`near` carries the target position of the edge being refined, so a map
+whose inverse is a search (locating a point in a curvilinear grid) can
+start next to the answer. Use an exact map: one that itself interpolates
+between samples puts every midpoint on its chord, and nothing is added.
 
 ## The idea in one paragraph
 
