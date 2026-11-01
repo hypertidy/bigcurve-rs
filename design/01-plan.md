@@ -1,6 +1,9 @@
 # 01: Plan
 
-Status: proposed. Each stage ends with something that runs and is
+Status: stages 1 and 2 done; this crate is now the canonical bigcurve
+engine (hypertidy/bigcurve#14): new engine work lands here first, the R
+package's C++ header is frozen, and the two are kept in step by fixtures.
+Each stage ends with something that runs and is
 tested; later stages are sketches and will be revised as earlier ones
 land.
 
@@ -55,9 +58,12 @@ Four parts, all traits or plain values:
    - `Planar`: straight lines in the source CRS, as GEOS, GDAL and most
      file formats read them; long and negligible restated in source
      units.
-   - `Geodesic` (feature `geographiclib`): the sphere chooses where to
-     split, each vertex is then moved to the same fraction of the WGS84
-     geodesic, as `densify(ellipsoid = TRUE)` does in R.
+   - geodesic placement (feature `geodesic`): the sphere chooses where
+     to split, each vertex is then moved to the same fraction of the
+     WGS84 geodesic, as `densify(ellipsoid = TRUE)` does in R. Landed as
+     drivers over `GreatCircle` (`densify_path_ellipsoid`,
+     `densify_mesh_ellipsoid`), not an `Edge` model: the sphere still
+     makes every decision, so only the final placement changes.
 2. **Forward map**: `fn fwd(&mut self, p) -> Option<(f64, f64)>`.
    `None` and non-finite output both mean "cannot be moved". Each point
    is mapped once; vertices carry source and target coordinates.
@@ -128,7 +134,7 @@ with bigcurve and PROJ; it runs once on a machine with R, and the
 fixtures are committed with the forward map's output so the Rust tests
 need no PROJ.
 
-### 2. Edge models and a batched forward map (done, but `Geodesic`)
+### 2. Edge models and a batched forward map (done)
 
 Landed as the `Edge` trait (`mid`, `span` returning `Span::{Negligible,
 Normal, Long}`, `floor`, and `align`/`reframe` for spaces with more than
@@ -142,9 +148,16 @@ and `Resampler::edges`, the level-order engine. Every `Forward` is a
 fixtures pin it bitwise, and a test checks it against the depth-first
 `Resampler::edge` on 300 random edges. A midpoint the map cannot take
 stops that edge's refinement there (the R engine's rule; bisecting
-towards the boundary is not offered). `Geodesic` is still to come; it
-needs `geographiclib-rs` behind a feature and a fixture from R's
-`densify(ellipsoid = TRUE)`.
+towards the boundary is not offered).
+
+Geodesic placement (0.3.0) is the feature `geodesic`, through
+`geographiclib-rs`: `densify_path_ellipsoid` and
+`densify_mesh_ellipsoid`. The level-order engine records each new
+vertex's fraction of its edge from the canonical start (dyadic, so
+exact), and each vertex moves to that fraction of the WGS84 geodesic,
+keeping its longitude frame. The fixtures are R/ellipsoid.R's replay
+applied to the C++ engine's output with Python geographiclib
+(oracle/ellipsoid.py); the Rust drivers agree to 4e-14 degrees.
 
 As planned:
 

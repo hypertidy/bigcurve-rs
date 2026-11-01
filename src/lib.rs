@@ -76,6 +76,8 @@ use std::fmt;
 
 mod edge;
 mod forward;
+#[cfg(feature = "geodesic")]
+mod geodesic;
 
 pub use edge::{Edge, GreatCircle, Planar, Span};
 pub use forward::{from_fn, Forward, ForwardBatch, FromFn};
@@ -192,6 +194,9 @@ struct Item {
     b: Vertex,
     depth: u32,
     at: Attach,
+    // fractions of the canonical edge at `a` and `b` (dyadic, so exact)
+    t0: f64,
+    t1: f64,
 }
 
 const NONE: usize = usize::MAX;
@@ -201,6 +206,7 @@ struct Node {
     v: Vertex,
     left: usize,
     right: usize,
+    t: f64,
 }
 
 impl<T: ForwardBatch> Resampler<T, GreatCircle> {
@@ -302,6 +308,20 @@ impl<T: ForwardBatch, E: Edge> Resampler<T, E> {
         out: &mut Vec<Vertex>,
         ends: &mut Vec<usize>,
     ) {
+        self.edges_impl(edges, out, ends, None);
+    }
+
+    /// [`Resampler::edges`], also giving each new vertex's fraction along
+    /// its edge, measured from the canonical start (see
+    /// [`Resampler::edge`]). Fractions are dyadic (`k / 2^d`), so exact:
+    /// with great circle edges each is the fraction of the arc.
+    fn edges_impl(
+        &mut self,
+        edges: &[(Vertex, Vertex)],
+        out: &mut Vec<Vertex>,
+        ends: &mut Vec<usize>,
+        mut fractions: Option<&mut Vec<f64>>,
+    ) {
         let mut canon = Vec::with_capacity(edges.len());
         self.work.clear();
         self.nodes.clear();
@@ -314,6 +334,8 @@ impl<T: ForwardBatch, E: Edge> Resampler<T, E> {
                     b: q,
                     depth: self.max_depth,
                     at: Attach::Root(k),
+                    t0: 0.0,
+                    t1: 1.0,
                 });
             }
             canon.push(c);
@@ -354,10 +376,12 @@ impl<T: ForwardBatch, E: Edge> Resampler<T, E> {
                     continue;
                 }
                 let id = self.nodes.len();
+                let t = 0.5 * (it.t0 + it.t1);
                 self.nodes.push(Node {
                     v: m,
                     left: NONE,
                     right: NONE,
+                    t,
                 });
                 match it.at {
                     Attach::Root(k) => roots[k] = id,
@@ -369,12 +393,16 @@ impl<T: ForwardBatch, E: Edge> Resampler<T, E> {
                     b: m,
                     depth: it.depth - 1,
                     at: Attach::Left(id),
+                    t0: it.t0,
+                    t1: t,
                 });
                 self.next.push(Item {
                     a: m,
                     b: it.b,
                     depth: it.depth - 1,
                     at: Attach::Right(id),
+                    t0: t,
+                    t1: it.t1,
                 });
             }
             std::mem::swap(&mut self.work, &mut self.next);
@@ -392,10 +420,18 @@ impl<T: ForwardBatch, E: Edge> Resampler<T, E> {
                 }
                 let Some(top) = stack.pop() else { break };
                 out.push(self.nodes[top].v);
+                if let Some(f) = fractions.as_deref_mut() {
+                    f.push(self.nodes[top].t);
+                }
                 cur = self.nodes[top].right;
             }
             if let Some((_, q, true)) = canon[k] {
                 self.unreverse(a, &q, &mut out[start..]);
+                if let Some(f) = fractions.as_deref_mut() {
+                    let n = out.len() - start;
+                    let len = f.len();
+                    f[len - n..].reverse();
+                }
             }
             ends.push(out.len());
         }
@@ -518,16 +554,53 @@ pub fn densify_path_with<T: ForwardBatch, E: Edge>(
     coords: &[[f64; 2]],
     options: &Options,
 ) -> Vec<[f64; 2]> {
+    path_impl(forward, edge, coords, options, &mut |_, _, _, _| {})
+}
+
+/// Densify one path of longitude, latitude vertices as
+/// [`densify_path`] does, then move each new vertex to the same fraction
+/// of the WGS84 geodesic between its edge's ends (feature `geodesic`).
+///
+/// The sphere still decides how many vertices each edge gets and where
+/// along it they go; input vertices never move, and an edge gives the
+/// same vertices whichever way it is written. This is the R package's
+/// `densify(ellipsoid = TRUE)`.
+#[cfg(feature = "geodesic")]
+pub fn densify_path_ellipsoid<T: ForwardBatch>(
+    forward: T,
+    coords: &[[f64; 2]],
+    options: &Options,
+) -> Vec<[f64; 2]> {
+    let g = geodesic::Replay::wgs84();
+    path_impl(forward, GreatCircle, coords, options, &mut |a, b, c, t| {
+        g.chain(a, b, c, t)
+    })
+}
+
+/// Moves the new vertices of edge `a -> b` given their fractions; a
+/// no-op closure skips the fractions altogether.
+type Place<'a> = dyn FnMut([f64; 2], [f64; 2], &mut [[f64; 2]], &[f64]) + 'a;
+
+fn path_impl<T: ForwardBatch, E: Edge>(
+    forward: T,
+    edge: E,
+    coords: &[[f64; 2]],
+    options: &Options,
+    place: &mut Place<'_>,
+) -> Vec<[f64; 2]> {
     let mut rs = Resampler::with_edge(forward, edge, options);
     let v = rs.project_all(coords);
     let pairs: Vec<(Vertex, Vertex)> = v.windows(2).map(|w| (w[0], w[1])).collect();
     let (mut interior, mut ends) = (Vec::new(), Vec::with_capacity(pairs.len()));
-    rs.edges(&pairs, &mut interior, &mut ends);
+    let mut fr = Vec::new();
+    rs.edges_impl(&pairs, &mut interior, &mut ends, Some(&mut fr));
     let mut out = Vec::with_capacity(coords.len() + interior.len());
     let mut from = 0;
     for (k, &end) in ends.iter().enumerate() {
         out.push(coords[k]);
+        let start = out.len();
         out.extend(interior[from..end].iter().map(|m| [m.lon, m.lat]));
+        place(coords[k], coords[k + 1], &mut out[start..], &fr[from..end]);
         from = end;
     }
     if let Some(last) = coords.last() {
@@ -604,6 +677,46 @@ pub fn densify_mesh_with<T: ForwardBatch, E: Edge>(
     segments: &[[usize; 2]],
     options: &Options,
 ) -> Result<Mesh, Error> {
+    mesh_impl(
+        forward,
+        edge,
+        vertices,
+        segments,
+        options,
+        &mut |_, _, _, _| {},
+    )
+}
+
+/// Densify a segment mesh of longitude, latitude vertices as
+/// [`densify_mesh`] does, then move each new vertex onto the WGS84
+/// geodesic (feature `geodesic`); see [`densify_path_ellipsoid`]. Shared
+/// segments still share their new vertices.
+#[cfg(feature = "geodesic")]
+pub fn densify_mesh_ellipsoid<T: ForwardBatch>(
+    forward: T,
+    vertices: &[[f64; 2]],
+    segments: &[[usize; 2]],
+    options: &Options,
+) -> Result<Mesh, Error> {
+    let g = geodesic::Replay::wgs84();
+    mesh_impl(
+        forward,
+        GreatCircle,
+        vertices,
+        segments,
+        options,
+        &mut |a, b, c, t| g.chain(a, b, c, t),
+    )
+}
+
+fn mesh_impl<T: ForwardBatch, E: Edge>(
+    forward: T,
+    edge: E,
+    vertices: &[[f64; 2]],
+    segments: &[[usize; 2]],
+    options: &Options,
+    place: &mut Place<'_>,
+) -> Result<Mesh, Error> {
     let nv = vertices.len();
     for (k, s) in segments.iter().enumerate() {
         for &index in s {
@@ -631,7 +744,8 @@ pub fn densify_mesh_with<T: ForwardBatch, E: Edge>(
     }
     let pairs: Vec<(Vertex, Vertex)> = unique.iter().map(|&[a, b]| (v[a], v[b])).collect();
     let (mut interior, mut ends) = (Vec::new(), Vec::with_capacity(pairs.len()));
-    rs.edges(&pairs, &mut interior, &mut ends);
+    let mut fr = Vec::new();
+    rs.edges_impl(&pairs, &mut interior, &mut ends, Some(&mut fr));
 
     let mut out = Mesh {
         vertices: vertices.to_vec(),
@@ -649,6 +763,13 @@ pub fn densify_mesh_with<T: ForwardBatch, E: Edge>(
             placed[u] = out.vertices.len();
             out.vertices
                 .extend(interior[from..ends[u]].iter().map(|m| [m.lon, m.lat]));
+            let [ua, ub] = unique[u];
+            place(
+                vertices[ua],
+                vertices[ub],
+                &mut out.vertices[placed[u]..],
+                &fr[from..ends[u]],
+            );
         }
         chain.clear();
         chain.extend(placed[u]..placed[u] + n);

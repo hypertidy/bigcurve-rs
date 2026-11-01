@@ -7,8 +7,9 @@ ends draws the wrong line. bigcurve adds the vertices a line needs to
 keep its true shape in the target space: more where the map bends it,
 none where it doesn't.
 
-This is the Rust home of [bigcurve](https://github.com/hypertidy/bigcurve),
-the R package. The method is the adaptive resampling Mike Bostock wrote
+This crate is the canonical engine of [bigcurve](https://github.com/hypertidy/bigcurve),
+the R package: new engine work lands here first, and the R package's C++
+header (frozen, bug fixes only) is kept in step with it. The method is the adaptive resampling Mike Bostock wrote
 for [d3-geo](https://github.com/d3/d3-geo): bisect an edge while its
 moved midpoint sits off the chord of its moved ends, with the error
 measured where it matters, in the target plane.
@@ -20,7 +21,11 @@ from it with PROJ; see [oracle/](oracle/README.md)). Stage 2 adds the
 edge model as a parameter (`GreatCircle`, the default, and `Planar`) and
 a batched forward map (`ForwardBatch`): refinement runs level by level,
 one forward call per level, with bitwise the same vertices as the
-depth-first recursion. The geodesic edge model is still to come.
+depth-first recursion. The `geodesic` feature adds
+`densify_path_ellipsoid` and `densify_mesh_ellipsoid`, the R package's
+`densify(ellipsoid = TRUE)`: the sphere decides where an edge needs
+vertices, which then move to the same fraction of the WGS84 geodesic
+(pure Rust, through `geographiclib-rs`).
 
 ```rust
 use bigcurve::{densify_path, from_fn, Options};

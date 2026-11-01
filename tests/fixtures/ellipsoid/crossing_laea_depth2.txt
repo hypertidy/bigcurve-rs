@@ -1,0 +1,7 @@
+# bigcurve ellipsoid fixture: crossing_laea_depth2
+# R/ellipsoid.R replay with geographiclib (Python) 2.1
+eout 4061800000000000 c056400000000000
+eout 4067d6d5b81e2258 c047964d772eeebf
+eout 4067efbfd1868447 c012e181cafcda61
+eout 4068052f75af5d59 4042e38695ed7846
+eout c064800000000000 4054000000000000
