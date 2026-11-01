@@ -128,7 +128,25 @@ with bigcurve and PROJ; it runs once on a machine with R, and the
 fixtures are committed with the forward map's output so the Rust tests
 need no PROJ.
 
-### 2. Edge models and a batched forward map
+### 2. Edge models and a batched forward map (done, but `Geodesic`)
+
+Landed as the `Edge` trait (`mid`, `span` returning `Span::{Negligible,
+Normal, Long}`, `floor`, and `align`/`reframe` for spaces with more than
+one representative of a point), `GreatCircle` (the stage 1 engine, now a
+model), `Planar` (with optional floor and forced-split lengths in source
+units), `ForwardBatch` (coordinate arrays in place, per-point success,
+and a `near` hint per point: the target position of the edge's start),
+and `Resampler::edges`, the level-order engine. Every `Forward` is a
+`ForwardBatch`. The drivers (`densify_path`, `densify_mesh`, and their
+`_with` forms taking an edge model) run on the level-order engine; the R
+fixtures pin it bitwise, and a test checks it against the depth-first
+`Resampler::edge` on 300 random edges. A midpoint the map cannot take
+stops that edge's refinement there (the R engine's rule; bisecting
+towards the boundary is not offered). `Geodesic` is still to come; it
+needs `geographiclib-rs` behind a feature and a fixture from R's
+`densify(ellipsoid = TRUE)`.
+
+As planned:
 
 The edge model trait, `Planar`, and `Geodesic` behind a feature. The
 long and negligible rules restated per model. Tests: `Planar` under an
