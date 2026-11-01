@@ -12,6 +12,10 @@
   bisection tree, so they are exact. Input vertices never move, an edge
   gives the same vertices whichever way it is written, shared segments
   stay shared, and each vertex keeps its longitude frame.
+- Canon tables: tests/canon.rs writes and checks
+  tests/canon/canon-tables.txt (176 cases on analytic sphere maps, with
+  every forward call recorded), which the R package's C++ header must
+  reproduce (hypertidy/bigcurve#15, its `canon/`).
 - Fixtures: oracle/ellipsoid.py applies R/ellipsoid.R's replay to the C++
   engine's output with Python geographiclib (tests/fixtures/ellipsoid);
   the Rust drivers agree to 4e-14 degrees.

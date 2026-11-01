@@ -9,7 +9,8 @@ none where it doesn't.
 
 This crate is the canonical engine of [bigcurve](https://github.com/hypertidy/bigcurve),
 the R package: new engine work lands here first, and the R package's C++
-header (frozen, bug fixes only) is kept in step with it. The method is the adaptive resampling Mike Bostock wrote
+header (frozen, bug fixes only) is kept in step with it by the canon
+tables in `tests/canon/` (see `tests/canon.rs`). The method is the adaptive resampling Mike Bostock wrote
 for [d3-geo](https://github.com/d3/d3-geo): bisect an edge while its
 moved midpoint sits off the chord of its moved ends, with the error
 measured where it matters, in the target plane.
