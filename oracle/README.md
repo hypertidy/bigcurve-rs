@@ -33,3 +33,14 @@ comparisons are exact.
     fwd <lon> <lat> ok|na <x> <y>   every forward call the engine made
     out <lon> <lat>          output vertices
     oseg <a> <b> <parent>    output segments (mesh)
+
+## Ellipsoid fixtures
+
+`ellipsoid.py` applies the R package's `densify(ellipsoid = TRUE)` rule
+(`R/ellipsoid.R`, line for line) to the C++ engine's output in
+`tests/fixtures`, using Python geographiclib for the geodesics, and
+writes `tests/fixtures/ellipsoid/*.txt` (`eout <lon> <lat>` per output
+vertex, doubles in hex). `run.sh` runs it after the C++ oracle; it needs
+`python3 -m pip install geographiclib==2.1`. The Rust drivers are held
+to 1e-9 degrees against these, since the two sides use different ports
+of GeographicLib.

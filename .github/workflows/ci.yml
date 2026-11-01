@@ -17,15 +17,16 @@ jobs:
         with:
           components: clippy, rustfmt
       - run: cargo fmt --check
-      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: cargo test
+      - run: cargo test --all-features
 
   msrv:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.70
-      - run: cargo test
+      - run: cargo test --all-features
 
   oracle:
     # the fixtures are reproducible from the C++ engine and PROJ
@@ -33,5 +34,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y libproj-dev
+      - run: python3 -m pip install geographiclib==2.1
       - run: ./oracle/run.sh
       - run: git diff --exit-code -- tests/fixtures

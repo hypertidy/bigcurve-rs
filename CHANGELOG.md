@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.0 (unreleased)
+
+- This crate is now the canonical bigcurve engine; the R package's C++
+  header is frozen (hypertidy/bigcurve#14).
+- Feature `geodesic`: `densify_path_ellipsoid` and
+  `densify_mesh_ellipsoid`, the R package's `densify(ellipsoid = TRUE)`.
+  The sphere chooses how many vertices each edge gets and at what fraction
+  of its arc; each new vertex moves to the same fraction of the WGS84
+  geodesic (`geographiclib-rs`, pure Rust). Fractions come from the
+  bisection tree, so they are exact. Input vertices never move, an edge
+  gives the same vertices whichever way it is written, shared segments
+  stay shared, and each vertex keeps its longitude frame.
+- Fixtures: oracle/ellipsoid.py applies R/ellipsoid.R's replay to the C++
+  engine's output with Python geographiclib (tests/fixtures/ellipsoid);
+  the Rust drivers agree to 4e-14 degrees.
+
 ## 0.2.0 (2026-11-01)
 
 - Edge models: the `Edge` trait, with `GreatCircle` (the stage 1 engine,

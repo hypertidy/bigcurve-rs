@@ -1,6 +1,6 @@
 [package]
 name = "bigcurve"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.70"
 license = "MIT"
@@ -12,3 +12,15 @@ categories = ["science::geo", "mathematics"]
 exclude = ["oracle/oracle"]
 
 [dependencies]
+# Only for the `geodesic` feature: ellipsoidal placement of new vertices.
+# Pure Rust (a port of GeographicLib's geodesic routines), builds for wasm.
+geographiclib-rs = { version = "0.2.7", optional = true }
+
+[features]
+# `densify_path_ellipsoid` and `densify_mesh_ellipsoid`: the sphere decides
+# where an edge needs vertices, which then move onto the WGS84 geodesic, as
+# the R package's `densify(ellipsoid = TRUE)` does.
+geodesic = ["dep:geographiclib-rs"]
+
+[package.metadata.docs.rs]
+all-features = true

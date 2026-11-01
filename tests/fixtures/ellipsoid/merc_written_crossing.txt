@@ -1,0 +1,10 @@
+# bigcurve ellipsoid fixture: merc_written_crossing
+# R/ellipsoid.R replay with geographiclib (Python) 2.1
+eout 4065400000000000 4034000000000000
+eout 4065dfdab9c940ba 403436ba22ebd505
+eout 40662fe8ab996790 4034447303d48edc
+eout 406657f3bf5ebd7b 403447e1e22d23a2
+eout 40666bf9ccdf7aa0 403448bda427a0f7
+eout 406675fce415afa0 403448f4954c8f9a
+eout 4066800000000000 40344906e5bcfd2c
+eout c065400000000000 4034000000000000

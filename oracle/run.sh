@@ -6,3 +6,5 @@ cd "$(dirname "$0")/.."
 c++ -std=c++17 -O2 -o oracle/oracle oracle/oracle.cpp $(pkg-config --cflags --libs proj)
 rm -f tests/fixtures/*.txt
 ./oracle/oracle tests/fixtures
+# the ellipsoid replay of those fixtures (needs python3 -m pip install geographiclib==2.1)
+python3 oracle/ellipsoid.py

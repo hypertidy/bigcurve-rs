@@ -1,0 +1,7 @@
+# bigcurve ellipsoid fixture: merc_along_m180
+# R/ellipsoid.R replay with geographiclib (Python) 2.1
+eout c066800000000000 c04e000000000000
+eout c066800000000000 c03e0ffcde0d2b2f
+eout c066800000000000 3cfcbe88130d27a2
+eout c066800000000000 403e0ffcde0d2b33
+eout c066800000000000 404e000000000000

@@ -1,0 +1,7 @@
+# bigcurve ellipsoid fixture: hobart_kolkata_gnom
+# R/ellipsoid.R replay with geographiclib (Python) 2.1
+eout 406269999999999a c045733333333333
+eout 406008c51e96aa56 c03c459debf07605
+eout 405c89217c44548b c02745f14999b06e
+eout 405969fcfaf7dfa3 401682d338555edd
+eout 405619999999999a 403699999999999a
