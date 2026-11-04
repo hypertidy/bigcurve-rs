@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 (unreleased)
+## 0.3.0 (2026-11-04)
 
 - This crate is now the canonical bigcurve engine; the R package's C++
   header is frozen (hypertidy/bigcurve#14).
